@@ -378,11 +378,160 @@ curl localhost:9113/metrics
 ```
 Caso todas as etapas foram concluídas com êxito, você deve ver uma saída com as métricas do Nginx e do Nginx Exporter.
 
+# Se todas as etapas foram concluídas com êxito, você deve ver uma saída com as métricas do Nginx e do Nginx Exporter.
 
+## Criando nosso primeiro alerta
 
+Agora que já temos o nosso Kube-Prometheus instalado, vamos configurar o Prometheus para monitorar o nosso cluster EKS. Para isso, vamos utilizar o kubectl port-forward para acessar o Prometheus localmente. Para isso, basta executar o seguinte comando:
 
+```bash
+kubectl port-forward -n monitoring svc/prometheus-k8s 39090:9090
+```
+Se você quiser acessar o Alertmanager, basta executar o seguinte comando:
+```bash
+kubectl port-forward -n monitoring svc/alertmanager-main 39093:9093
+```
+Pronto, agora você já sabe como que faz para acessar o Prometheus, AlertManager e o Grafana localmente. 😄
 
+Lembrando que você pode acessar o Prometheus e o AlertManager através do seu navegador, basta acessar as seguintes URLs:
 
+Prometheus: http://localhost:39090
+AlertManager: http://localhost:39093
 
+Simples assim!
 
+## Entendendo PrometheusRule
+Antes de sair definindo um novo alerta, precisamos entender como fazê-lo, uma vez que nós não temos mais o arquivo de alertas, igual tínhamos quando instalamos o Prometheus em nosso servidor Linux.
 
+Agora, precisamos entender que boa parte da configuração do Prometheus está dentro de configmaps, que são recursos do Kubernetes que armazenam dados em formato de chave e valor e são muito utilizados para armazenar configurações de aplicações.
+
+Para listar os configmaps do nosso cluster, basta executar o seguinte comando:
+```bash
+kubectl get configmaps -n monitoring
+```
+O resultado do comando acima deverá ser parecido com o seguinte:
+
+```bash
+NAME                                                  DATA   AGE
+adapter-config                                        1      7m20s
+blackbox-exporter-configuration                       1      7m49s
+# ... (outros configmaps)
+prometheus-k8s-rulefiles-0                            8      7m10s
+```
+Como você pode ver, temos diversos configmaps que contêm configurações do Prometheus, AlertManager e do Grafana. Vamos focar no configmap prometheus-k8s-rulefiles-0, que é o configmap que contém os alertas do Prometheus.
+
+Para visualizar o conteúdo do configmap, basta executar o seguinte comando:
+```bash
+kubectl get configmap prometheus-k8s-rulefiles-0 -n monitoring -o yaml
+```
+## Criando um novo alerta
+Como exemplo, já temos um alerta chamado KubeMemoryOvercommit. Vamos criar um novo alerta para monitorar o estado do Nginx.
+
+## O que é um PrometheusRule?
+O PrometheusRule é um recurso do Kubernetes que foi instalado no momento que realizamos a instalação dos CRDs do kube-prometheus. O PrometheusRule permite que você defina alertas para o Prometheus. Ele é muito parecido com o arquivo de alertas que criamos no nosso servidor Linux, porém, nesse momento, vamos fazer a mesma definição de alerta, mas usando o PrometheusRule.
+
+# Criando um PrometheusRule
+
+Vamos criar um arquivo chamado nginx-prometheus-rule.yaml e vamos colocar o seguinte conteúdo:
+
+```yaml
+apiVersion: monitoring.coreos.com/v1 # Versão da api do PrometheusRule
+kind: PrometheusRule # Tipo do recurso
+metadata: # Metadados do recurso (nome, namespace, labels)
+  name: nginx-prometheus-rule
+  namespace: monitoring
+  labels: # Labels do recurso
+    prometheus: k8s # Label que indica que o PrometheusRule será utilizado pelo Prometheus do Kubernetes
+    role: alert-rules # Label que indica que o PrometheusRule contém regras de alerta
+    app.kubernetes.io/name: kube-prometheus # Label que indica que o PrometheusRule faz parte do kube-prometheus
+    app.kubernetes.io/part-of: kube-prometheus # Label que indica que o PrometheusRule faz parte do kube-prometheus
+spec: # Especificação do recurso
+  groups: # Lista de grupos de regras
+  - name: nginx-prometheus-rule # Nome do grupo de regras
+    rules: # Lista de regras
+    - alert: NginxDown # Nome do alerta
+      expr: up{job="nginx"} == 0 # Expressão que será utilizada para disparar o alerta
+      for: 1m # Tempo que a expressão deve ser verdadeira para que o alerta seja disparado
+      labels: # Labels do alerta
+        severity: critical # Label que indica a severidade do alerta
+      annotations: # Anotações do alerta
+        summary: "Nginx is down" # Título do alerta
+        description: "Nginx is down for more than 1 minute. Pod name: {{ $labels.pod }}" # Descrição do alerta
+
+```
+
+Agora, vamos criar o PrometheusRule no nosso cluster:
+
+```bash
+kubectl apply -f nginx-prometheus-rule.yaml
+```
+
+Agora, vamos verificar se o PrometheusRule foi criado com sucesso:
+
+```bash
+kubectl get prometheusrules -n monitoring
+```
+A saída deve ser parecida com essa:
+
+```bash
+NAME                              AGE
+alertmanager-main-rules           2m
+grafana-rules                     2m
+kube-prometheus-rules             2m
+kube-state-metrics-rules          2m
+kubernetes-monitoring-rules       2m
+nginx-prometheus-rule             2s
+node-exporter-rules               1m
+prometheus-k8s-prometheus-rules   9m
+prometheus-operator-rules         1m
+
+```
+Agora nós já temos um novo alerta configurado em nosso Prometheus. Lembrando que temos a integração com o AlertManager, então, quando o alerta for disparado, ele será enviado para o AlertManager, e o AlertManager vai enviar uma notificação, por exemplo, para o nosso Slack ou e-mail.
+
+Você pode acessar o nosso alerta tanto no Prometheus quanto no AlertManager.
+
+Vamos imaginar que você precisa criar um novo alerta para monitorar a quantidade de requisições simultâneas que o seu Nginx está recebendo. Para isso, você precisa criar uma nova regra no PrometheusRule. Podemos utilizar o mesmo arquivo nginx-prometheus-rule.yaml e adicionar a nova regra no final do arquivo:
+
+```yaml
+apiVersion: monitoring.coreos.com/v1 # Versão da api do PrometheusRule
+kind: PrometheusRule # Tipo do recurso
+metadata: # Metadados do recurso (nome, namespace, labels)
+  name: nginx-prometheus-rule
+  namespace: monitoring
+  labels: # Labels do recurso
+    prometheus: k8s # Label que indica que o PrometheusRule será utilizado pelo Prometheus do Kubernetes
+    role: alert-rules # Label que indica que o PrometheusRule contém regras de alerta
+    app.kubernetes.io/name: kube-prometheus # Label que indica que o PrometheusRule faz parte do kube-prometheus
+    app.kubernetes.io/part-of: kube-prometheus # Label que indica que o PrometheusRule faz parte do kube-prometheus
+spec: # Especificação do recurso
+  groups: # Lista de grupos de regras
+  - name: nginx-prometheus-rule # Nome do grupo de regras
+    rules: # Lista de regras
+    - alert: NginxDown # Nome do alerta
+      expr: up{job="nginx"} == 0 # Expressão que será utilizada para disparar o alerta
+      for: 1m # Tempo que a expressão deve ser verdadeira para que o alerta seja disparado
+      labels: # Labels do alerta
+        severity: critical # Label que indica a severidade do alerta
+      annotations: # Anotações do alerta
+        summary: "Nginx is down" # Título do alerta
+        description: "Nginx is down for more than 1 minute. Pod name: {{ $labels.pod }}" # Descrição do alerta
+
+    - alert: NginxHighRequestRate # Nome do alerta
+        expr: rate(nginx_http_requests_total{job="nginx"}[5m]) > 10 # Expressão que será utilizada para disparar o alerta
+        for: 1m # Tempo que a expressão deve ser verdadeira para que o alerta seja disparado
+        labels: # Labels do alerta
+            severity: warning # Label que indica a severidade do alerta
+        annotations: # Anotações do alerta
+            summary: "Nginx is receiving high request rate" # Título do alerta
+            description: "Nginx is receiving high request rate for more than 1 minute. Pod name: {{ $labels.pod }}" # Descrição do alerta
+```
+foi criado uma nova definição de alerta em nosso PrometheusRule. Agora vamos atualizar o nosso PrometheusRule
+
+```bash
+kubectl apply -f nginx-prometheus-rule.yaml
+```
+podemos verificar se o PrometheusRule foi atualizado:
+```bash
+kubectl get prometheusrules -n monitoring nginx-prometheus-rule -o yaml
+```
+Com a integração do AlertManager, ao receber mais de 10 requisições por minuto, o alerta será acionado, enviando uma notificação para o Slack ou e-mail, dependendo da configuração no AlertManager.
