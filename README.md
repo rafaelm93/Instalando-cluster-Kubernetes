@@ -100,3 +100,51 @@ Uso de CPU e memória por nó do cluster EKS.
 Uso de CPU e memória por container em todos os pods do cluster EKS.
 
 Brinque com os Dashboards e aproveite a quantidade enorme de informações fornecidas pelo Kube-Prometheus! 🚀
+
+
+## ServiceMonitors no Kube-Prometheus
+
+O Kube-Prometheus utiliza o recurso `ServiceMonitor` para configurar o Prometheus para monitorar serviços específicos. Já vem configurado com vários `ServiceMonitors`, incluindo os do API Server, Node Exporter, Blackbox Exporter, etc.
+
+Para listar os `ServiceMonitors`:
+
+```bash
+kubectl get servicemonitors -n monitoring
+```
+Para ver detalhes de um ServiceMonitor, como o do Prometheus:
+
+```bash
+kubectl get servicemonitor prometheus-k8s -n monitoring -o yaml
+```
+Um exemplo simples de um ServiceMonitor:
+
+```bash
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  labels:
+    app.kubernetes.io/component: prometheus
+    app.kubernetes.io/instance: k8s
+    app.kubernetes.io/name: prometheus
+    app.kubernetes.io/part-of: kube-prometheus
+    app.kubernetes.io/version: 2.41.0
+  name: prometheus-k8s
+  namespace: monitoring
+spec:
+  endpoints:
+  - interval: 30s
+    port: web
+  - interval: 30s
+    port: reloader-web
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: prometheus
+      app.kubernetes.io/instance: k8s
+      app.kubernetes.io/name: prometheus
+      app.kubernetes.io/part-of: kube-prometheus
+```
+
+ Agora pode ser criado os ServiceMonitors para monitorar serviços adicionais do cluster! 🛠️
+
+
+
