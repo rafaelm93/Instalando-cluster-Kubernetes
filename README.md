@@ -53,34 +53,47 @@
     kubectl get nodes
     ```
 
-## Comandos úteis do eksctl
+## Instalando o Kube-Prometheus
 
-- Listar todos os clusters EKS:
+1. Clone o repositório e aplique os manifests:
 
     ```bash
-    eksctl get cluster -A
+    git clone https://github.com/prometheus-operator/kube-prometheus
+    cd kube-prometheus
+    kubectl create -f manifests/setup
     ```
 
-- Listar clusters EKS em uma região específica:
+2. Verifique a conclusão da instalação dos CRDs:
 
     ```bash
-    eksctl get cluster -r us-east-1
+    kubectl get servicemonitors -A
     ```
 
-- Aumentar o número de nós do cluster:
+3. Instale Prometheus e Alertmanager:
 
     ```bash
-    eksctl scale nodegroup --cluster=eks-cluster --nodes=3 --nodes-min=1 --nodes-max=3 --name=eks-cluster-nodegroup -r us-east-1
+    kubectl apply -f manifests/
     ```
 
-- Diminuir o número de nós do cluster:
+4. Verifique a conclusão da instalação:
 
     ```bash
-    eksctl scale nodegroup --cluster=eks-cluster --nodes=1 --nodes-min=1 --nodes-max=3 --name=eks-cluster-nodegroup -r us-east-1
+    kubectl get pods -n monitoring
     ```
 
-- Deletar o cluster EKS:
+O resultado esperado é algo como:
+
+NAME READY STATUS RESTARTS AGE
+alertmanager-main-0 2/2 Running 0 57s
+alertmanager-main-1 2/2 Running 0 57s
+alertmanager-main-2 2/2 Running 0 57s
+...
+prometheus-k8s-0 2/2 Running 0 57s
+prometheus-k8s-1 2/2 Running 0 57s
+
 
     ```bash
-    eksctl delete cluster --name=eks-cluster -r us-east-1
+    
+Pronto, você instalou com sucesso o Prometheus, Alertmanager, Blackbox Exporter, Node Exporter e Grafana no seu cluster EKS! 😄
+
     ```
