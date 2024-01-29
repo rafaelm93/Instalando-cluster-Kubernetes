@@ -276,4 +276,113 @@ spec: # especificação do recurso
 
 Com isso concluimos a configuração do ServiceMonitor para monitorar a aplicação Nginx no Kubernetes.
 
+# Configurando PodMonitors para Métricas não HTTP no Kubernetes
+
+## Introdução
+Quando lidamos com workloads que não são serviços HTTP, como CronJobs, Jobs, DaemonSets, entre outros, a monitorização pode ser feita por meio do PodMonitor. Neste guia, veremos como criar um PodMonitor para monitorar um Pod específico, expondo métricas do Nginx e do Nginx Exporter.
+
+## Criando um PodMonitor
+Vamos criar o nosso PodMonitor utilizando o arquivo YAML `nginx-pod-monitor.yaml`:
+
+```yaml
+apiVersion: monitoring.coreos.com/v1 # versão da API
+kind: PodMonitor # tipo de recurso, no caso, um PodMonitor do Prometheus Operator
+metadata: # metadados do recurso
+  name: nginx-podmonitor # nome do recurso
+  labels: # labels do recurso
+    app: nginx # label que identifica o app
+spec:
+  namespaceSelector: # seletor de namespaces
+    matchNames: # namespaces que serão monitorados
+      - default # namespace que será monitorado
+  selector: # seletor para identificar os pods que serão monitorados
+    matchLabels: # labels que identificam os pods que serão monitorados
+      app: nginx # label que identifica o app que será monitorado
+  podMetricsEndpoints: # endpoints que serão monitorados
+    - interval: 10s # intervalo de tempo entre as requisições
+      path: /metrics # caminho para a requisição
+      targetPort: 9113 # porta do target
+```
+Antes de deployar o nosso PodMonitor, vamos criar o nosso Pod do Nginx com o seguinte arquivo YAML chamado nginx-pod.yaml:
+
+```yaml
+apiVersion: v1 # versão da API
+kind: Pod # tipo de recurso, no caso, um Pod
+metadata: # metadados do recurso
+  name: nginx-pod # nome do recurso
+  labels: # labels do recurso
+    app: nginx # label que identifica o app
+spec: # especificações do recursos
+  containers: # containers do template 
+    - name: nginx-container # nome do container
+      image: nginx # imagem do container do Nginx
+      ports: # portas do container
+        - containerPort: 80 # porta do container
+          name: http # nome da porta
+      volumeMounts: # volumes que serão montados no container
+        - name: nginx-config # nome do volume
+          mountPath: /etc/nginx/conf.d/default.conf # caminho de montagem do volume
+          subPath: nginx.conf # subpath do volume
+    - name: nginx-exporter # nome do container que será o exporter
+      image: 'nginx/nginx-prometheus-exporter:0.11.0' # imagem do container do exporter
+      args: # argumentos do container
+        - '-nginx.scrape-uri=http://localhost/metrics' # argumento para definir a URI de scraping
+      resources: # recursos do container
+        limits: # limites de recursos
+          memory: 128Mi # limite de memória
+          cpu: 0.3 # limite de CPU
+      ports: # portas do container
+        - containerPort: 9113 # porta do container que será exposta
+          name: metrics # nome da porta
+  volumes: # volumes do template
+    - configMap: # configmap do volume, nós iremos criar esse volume através de um configmap
+        defaultMode: 420 # modo padrão do volume
+        name: nginx-config # nome do configmap
+      name: nginx-config # nome do volume
+```
+Com o Pod criado, agora podemos implantar o PodMonitor:
+
+```bash
+kubectl apply -f nginx-pod-monitor.yaml
+```
+Vamos verificar se o PodMonitor foi criado com sucesso:
+```bash
+kubectl get podmonitors
+```
+Se quiser ver detalhes específicos do PodMonitor, execute:
+```bash
+kubectl describe podmonitor nginx-podmonitor
+```
+Também é possível verificar informações do ServiceMonitor:
+```bash
+kubectl describe servicemonitors nginx-servicemonitor
+```
+
+Verificando o Funcionamento
+Agora, verificamos se o PodMonitor está listado como um target no Prometheus. Para isso, acessamos o Prometheus localmente através do kubectl port-forward:
+```bash
+kubectl port-forward -n monitoring svc/prometheus-k8s 39090:9090
+```
+
+Certifique-se de conferir o seu novo target e as métricas coletadas.
+
+Além disso, é possível acessar o container usando kubectl exec para verificar se o exporter está funcionando corretamente ou para inspecionar as métricas expostas. Execute o seguinte comando:
+
+```bash
+kubectl exec -it nginx-pod -c nginx-exporter -- bash
+```
+Use o curl para verificar se o exporter está funcionando corretamente:
+
+```bash
+curl localhost:9113/metrics
+```
+Caso todas as etapas foram concluídas com êxito, você deve ver uma saída com as métricas do Nginx e do Nginx Exporter.
+
+
+
+
+
+
+
+
 
