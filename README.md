@@ -246,9 +246,9 @@ spec: # especificação do recurso
     app: nginx # label que identifica o pod/deployment que será exposto
 ```
 Aplicamos o Service:
-
+```bash
 kubectl apply -f nginx-service.yaml
-
+```
 Verificação
 ```bash
 curl http://<EXTERNAL-IP-DO-SERVICE>:80
