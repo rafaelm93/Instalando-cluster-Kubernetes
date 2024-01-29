@@ -255,6 +255,25 @@ curl http://<EXTERNAL-IP-DO-SERVICE>:80
 curl http://<EXTERNAL-IP-DO-SERVICE>:80/nginx_status
 curl http://<EXTERNAL-IP-DO-SERVICE>:80/metrics
 ```
+
+Vamos criar o nosso ServiceMonitor com o seguinte arquivo YAML:
+```yaml
+apiVersion: monitoring.coreos.com/v1 # versão da API
+kind: ServiceMonitor # tipo de recurso, no caso, um ServiceMonitor do Prometheus Operator
+metadata: # metadados do recurso
+  name: nginx-servicemonitor # nome do recurso
+  labels: # labels do recurso
+    app: nginx # label que identifica o app
+spec: # especificação do recurso
+  selector: # seletor para identificar os pods que serão monitorados
+    matchLabels: # labels que identificam os pods que serão monitorados
+      app: nginx # label que identifica o app que será monitorado
+  endpoints: # endpoints que serão monitorados
+    - interval: 10s # intervalo de tempo entre as requisições
+      path: /metrics # caminho para a requisição
+      targetPort: 9113 # porta do target
+```
+
 Com isso concluimos a configuração do ServiceMonitor para monitorar a aplicação Nginx no Kubernetes.
 
 
