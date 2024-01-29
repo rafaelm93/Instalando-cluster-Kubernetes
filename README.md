@@ -82,15 +82,14 @@
     ```
 
 O resultado esperado é algo como:
-
+...bash
 NAME READY STATUS RESTARTS AGE
 alertmanager-main-0 2/2 Running 0 57s
 alertmanager-main-1 2/2 Running 0 57s
 alertmanager-main-2 2/2 Running 0 57s
-...
 prometheus-k8s-0 2/2 Running 0 57s
 prometheus-k8s-1 2/2 Running 0 57s
-
+...
 
     ```bash
     
