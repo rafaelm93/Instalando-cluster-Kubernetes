@@ -94,6 +94,4 @@ prometheus-k8s-1 2/2 Running 0 57s
 
     ```bash
     
-Pronto, você instalou com sucesso o Prometheus, Alertmanager, Blackbox Exporter, Node Exporter e Grafana no seu cluster EKS! 😄
-
-    ```
+Pronto, você instalou com sucesso o Prometheus, Alertmanager, Blackbox Exporter, Node Exporter e Grafana no seu cluster EKS! 😎😎😎
