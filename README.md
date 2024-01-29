@@ -86,6 +86,7 @@ Agora que já temos o nosso Kube-Prometheus instalado, vamos acessar o nosso Gra
 ```bash
 kubectl port-forward -n monitoring svc/grafana 33000:3000
 Acesse o Grafana através do navegador: http://localhost:33000
+```
 
 Utilize o usuário admin e a senha admin para o primeiro login. O Grafana solicitará a alteração da senha.
 
