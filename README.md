@@ -1,4 +1,4 @@
-# Instalando o nosso cluster Kubernetes
+# 🚀 Bem-vindo ao Nosso Cluster Kubernetes! 🌟
 
 ## Configurando a máquina
 
@@ -81,14 +81,21 @@
     kubectl get pods -n monitoring
     ```
 
-O resultado esperado é algo como:
-```bash
-NAME READY STATUS RESTARTS AGE
-alertmanager-main-0 2/2 Running 0 57s
-alertmanager-main-1 2/2 Running 0 57s
-alertmanager-main-2 2/2 Running 0 57s
-prometheus-k8s-0 2/2 Running 0 57s
-prometheus-k8s-1 2/2 Running 0 57s
-```
+Agora que já temos o nosso Kube-Prometheus instalado, vamos acessar o nosso Grafana e verificar se está tudo funcionando corretamente. Para isso, vamos utilizar o `kubectl port-forward` para acessar o Grafana localmente. Execute o seguinte comando:
 
-Pronto, você instalou com sucesso o Prometheus, Alertmanager, Blackbox Exporter, Node Exporter e Grafana no seu cluster EKS! 😎😎😎
+```bash
+kubectl port-forward -n monitoring svc/grafana 33000:3000
+Acesse o Grafana através do navegador: http://localhost:33000
+
+Utilize o usuário admin e a senha admin para o primeiro login. O Grafana solicitará a alteração da senha.
+
+Dashboards do Kube-Prometheus
+O Kube-Prometheus configura vários Dashboards no Grafana para monitorar o seu cluster EKS.
+Alguns exemplos incluem:
+Detalhes do API Server e componentes do Kubernetes (Node, Pod, Deployment, etc.).
+Detalhes do cluster EKS, como uso de CPU e memória por todos os nós.
+Detalhes por namespace, incluindo pods, deployments, statefulsets e daemonsets.
+Uso de CPU e memória por nó do cluster EKS.
+Uso de CPU e memória por container em todos os pods do cluster EKS.
+
+Brinque com os Dashboards e aproveite a quantidade enorme de informações fornecidas pelo Kube-Prometheus! 🚀
